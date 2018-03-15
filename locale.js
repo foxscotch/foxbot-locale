@@ -4,8 +4,7 @@ const path = require('path');
 const _ = require('lodash');
 const klaw = require('klaw-sync');
 
-const config = require('./config');
-const { interpolateRegEx, evaluateRegEx } = config.templates
+const config = require('foxbot-config');
 
 
 /** Represents a set of locales.
@@ -20,10 +19,15 @@ class Locales {
    * @param {string} locales[].code - Locale code for the locale.
    * @param {string} locales[].name - Human-readable name for the locale.
    * @param {string} defaultLocale - Default locale to use in Locales#getText.
+   * @param {RegEx} interpolate - Template interpolate regular expression.
+   * @param {RegEx} evaluate - Template evaluate regular expression.
    */
-  constructor(locales, defaultLocale) {
+  constructor(locales, defaultLocale, interpolate, evaluate) {
     this.locales = locales.map(l => new Locale(l.code, l.name));
     this.text = {};
+
+    this.interpolate = interpolate;
+    this.evaluate = evaluate;
 
     const foundLocale = this.findLocale(defaultLocale);
     if (typeof foundLocale === 'undefined')
@@ -33,13 +37,19 @@ class Locales {
   }
 
   /**
-   * Instantiates a Locales object using the information in the config file.
+   * Instantiates a Locales object using the information from a config object.
+   * @param {Object} conf - The config object.
    * @returns {Locales} The created Locales object.
    */
-  static createFromConfig() {
-    if (typeof config.locale.locales === 'undefined')
-      config.locale.locales = require(path.join(config.locale.localesDir, 'meta.json'));
-    return new Locales(config.locale.locales, config.locale.default).addFromLocalesDir();
+  static createFromConfig(conf) {
+    if (typeof conf.locale.locales === 'undefined')
+      conf.locale.locales = require(path.join(conf.locale.localesDir, 'meta.json'));
+    return new Locales(
+      conf.locale.locales,
+      conf.locale.default,
+      conf.templates.interpolateRegEx,
+      conf.templates.evaluateRegEx
+    ).addFromLocalesDir();
   }
 
   /**
@@ -49,8 +59,8 @@ class Locales {
    */
   static compile(text) {
     return _.template(text, {
-      interpolate: interpolateRegEx,
-      evaluate: evaluateRegEx
+      interpolate: this.interpolate,
+      evaluate: this.evaluate
     });
   }
 
