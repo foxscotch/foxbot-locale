@@ -1,0 +1,8 @@
+# NPM files
+node_modules
+package-lock.json
+
+
+# Project files
+*.sublime-*
+.idea
